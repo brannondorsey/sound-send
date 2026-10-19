@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Phones</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; background: #000; color: #8a90a2; font: 13px/1.4 system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  .row { display: flex; gap: 36px; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 48px; overflow: hidden; border: 10px solid #1b1d25; box-shadow: 0 0 0 2px #2a2d38, 0 20px 60px rgba(0, 0, 0, 0.6); background: #07080d; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .air { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px; text-align: center; }
+  .air label { display: grid; gap: 4px; width: 100%; }
+  .air input { width: 100%; }
+  .waves { font-size: 28px; letter-spacing: 4px; color: #3ef0ff; }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="phone"><iframe id="A" src="../index.html?phone=A" allow="microphone; clipboard-read; clipboard-write"></iframe></div>
+  <div class="air">
+    <div class="waves">))) (((</div>
+    <label>noise <input id="noise" type="range" min="0" max="100" value="12"></label>
+    <label>echo <input id="echo" type="range" min="0" max="100" value="12"></label>
+    <label>loudness <input id="loud" type="range" min="1" max="100" value="40"></label>
+  </div>
+  <div class="phone"><iframe id="B" src="../index.html?phone=B" allow="microphone; clipboard-read; clipboard-write"></iframe></div>
+</div>
+<div>Dev harness: each phone's speaker is routed through a simulated speaker/mic response, room echo and noise into the other phone's microphone (and, louder, its own).</div>
+<script>
+  // Virtual air. Phones are iframes running the real app; their audio output
+  // is bridged into this page's AudioContext via MediaStreams, shaped, mixed
+  // with noise and handed back to each phone as its "microphone".
+  const air = new AudioContext();
+  const ids = ['A', 'B'];
+  const mic = {};
+  const wet = {};
+  const dry = {};
+
+  function noiseBuffer(seconds = 3) {
+    const b = air.createBuffer(1, air.sampleRate * seconds, air.sampleRate);
+    const d = b.getChannelData(0);
+    let pink = 0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random() * 2 - 1;
+      pink = 0.97 * pink + 0.2 * w;
+      d[i] = 0.4 * w + pink;
+    }
+    return b;
+  }
+
+  function roomIR(seconds = 0.5) {
+    const n = Math.round(air.sampleRate * seconds);
+    const b = air.createBuffer(1, n, air.sampleRate);
+    const d = b.getChannelData(0);
+    const start = Math.round(air.sampleRate * 0.006);
+    let e = 0;
+    for (let i = start; i < n; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp((-6.9 * (i - start)) / air.sampleRate / seconds);
+      e += d[i] * d[i];
+    }
+    // unit energy, so the echo gain below is the reverb-to-direct ratio
+    for (let i = 0; i < n; i++) d[i] /= Math.sqrt(e);
+    return b;
+  }
+
+  function biquad(type, f, q, gain = 0) {
+    const n = air.createBiquadFilter();
+    Object.assign(n, { type });
+    n.frequency.value = f;
+    n.Q.value = q;
+    n.gain.value = gain;
+    return n;
+  }
+
+  // what you'd hear in the room: both phones' speakers
+  const monitor = air.createGain();
+  monitor.gain.value = 0.5;
+  monitor.connect(air.destination);
+  Object.assign(window, { SS_AIR: air, SS_MONITOR: monitor });
+
+  const noiseGain = air.createGain();
+  const noise = air.createBufferSource();
+  noise.buffer = noiseBuffer();
+  noise.loop = true;
+  noise.connect(noiseGain);
+  noise.start();
+
+  for (const id of ids) {
+    const m = air.createGain();
+    const dest = air.createMediaStreamDestination();
+    m.connect(dest);
+    noiseGain.connect(m);
+    mic[id] = { mix: m, stream: dest.stream };
+  }
+
+  function update() {
+    const n = document.getElementById('noise').value / 100;
+    const e = document.getElementById('echo').value / 100;
+    const l = document.getElementById('loud').value / 100;
+    noiseGain.gain.value = 0.02 * n;
+    for (const id of ids) {
+      if (wet[id]) wet[id].gain.value = Math.sqrt(0.8 * e) * l;
+      if (dry[id]) dry[id].gain.value = l;
+    }
+  }
+  document.querySelectorAll('input').forEach((i) => i.addEventListener('input', update));
+
+  window.SS_HARNESS = {
+    tap(id, ctx, out) {
+      air.resume();
+      const bridge = ctx.createMediaStreamDestination();
+      out.connect(bridge);
+      const src = air.createMediaStreamSource(bridge.stream);
+      // small speaker: no bass, a resonance, a dip, a soft top end
+      const chain = [biquad('highpass', 650, 0.9), biquad('peaking', 2400, 1.4, 6), biquad('peaking', 4900, 2.5, -8), biquad('lowpass', 8500, 0.7)];
+      chain.reduce((a, b) => (a.connect(b), b), src);
+      const speaker = chain[chain.length - 1];
+      speaker.connect(monitor);
+      const other = ids.find((x) => x !== id);
+      dry[id] = air.createGain();
+      speaker.connect(dry[id]).connect(mic[other].mix);
+      const room = air.createConvolver();
+      room.normalize = false;
+      room.buffer = roomIR();
+      wet[id] = air.createGain();
+      speaker.connect(room).connect(wet[id]).connect(mic[other].mix);
+      const self = air.createGain();
+      self.gain.value = 1.5;
+      speaker.connect(self).connect(mic[id].mix);
+      update();
+    },
+    async getUserMedia(id) {
+      return mic[id].stream;
+    },
+  };
+  document.addEventListener('click', () => air.resume());
+</script>
+</body>
+</html>

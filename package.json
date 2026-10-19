@@ -1,0 +1,9 @@
+{
+  "name": "sound-send",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "serve": "http-server -c-1 -p 8080 ."
+  }
+}
