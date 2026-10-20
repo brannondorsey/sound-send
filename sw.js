@@ -1,6 +1,6 @@
 // Offline support (network first, cache fallback) and the Android share
 // target, which stashes whatever was shared for the page to pick up.
-const CACHE = 'ss-v1';
+const CACHE = 'ss-v2';
 const ASSETS = [
   './', 'index.html', 'app.css', 'manifest.webmanifest', 'icon.svg',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',

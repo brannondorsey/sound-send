@@ -1,4 +1,4 @@
-# sound.send
+# Sound Send
 
 Send text, links, your contact card, Wi‑Fi details, photos and files to the
 phone next to you, over sound. Both people open the same URL. No accounts, no
@@ -22,7 +22,7 @@ pairing, no internet once the page has loaded.
   minute); the original is one tap away, with its time estimate.
 - **Wi‑Fi**: network name and password, with Copy password on the other side.
 - **Share to** (installed on Android): share text, links or files from other
-  apps straight into sound.send.
+  apps straight into Sound Send.
 
 The receiver gets Copy, Open, Call, Email, Save and Share buttons as they
 apply, and a list of what it received. The sender gets a tick only once the

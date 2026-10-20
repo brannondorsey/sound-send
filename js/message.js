@@ -69,7 +69,7 @@ export function peek(bytes) {
 
 export async function unpack(bytes) {
   const h = peek(bytes);
-  if (!h) throw new Error('not a sound.send message');
+  if (!h) throw new Error('not a Sound Send message');
   let body = bytes.slice(h.offset);
   if (h.deflated) body = await pipe(body, new DecompressionStream('deflate'));
   return { kind: h.kind, name: h.name, mime: h.mime, body };

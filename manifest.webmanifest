@@ -1,6 +1,6 @@
 {
-  "name": "sound.send",
-  "short_name": "sound.send",
+  "name": "Sound Send",
+  "short_name": "Sound Send",
   "description": "Send text, contacts, Wi-Fi and files to the phone next to you, over sound.",
   "start_url": "./",
   "scope": "./",

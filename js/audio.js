@@ -80,7 +80,7 @@ export class AudioIO {
       node.connect(sink);
     } catch (e) {
       // Old browsers: ScriptProcessor and the demodulator on this thread.
-      console.warn('sound.send: demodulating on the main thread', e);
+      console.warn('Sound Send: demodulating on the main thread', e);
       const demod = new Demodulator(ctx.sampleRate);
       let anchor = { t: 0, n: 0 };
       demod.onDetect = (info) => this.dsp({ type: 'detect', info });

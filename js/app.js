@@ -767,7 +767,7 @@ $('#file').addEventListener('change', (e) => {
   composeFile(f);
 });
 
-// Android share sheet → sound.send (see manifest share_target and sw.js).
+// Android share sheet → Sound Send (see manifest share_target and sw.js).
 async function handleIncomingShare() {
   const q = new URLSearchParams(location.search);
   if (q.has('share') && 'caches' in window) {
