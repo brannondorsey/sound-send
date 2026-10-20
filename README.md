@@ -1,26 +1,23 @@
 # Sound Send
 
-Send text, links, your contact card, Wi‑Fi details, photos and files to the
+Send text, links, photos and files to the
 phone next to you, over sound. Both people open the same URL. No accounts, no
 pairing, no internet once the page has loaded.
 
-![Two phones: a contact, a photo and Wi‑Fi details going across (3–4x speed)](docs/demo.gif)
+![Two phones: a photo going across (3–4x speed)](docs/demo.gif)
 
 | Pick | Send | Got it |
 |---|---|---|
 | ![Photo compose sheet with Small/Original sizes](docs/compose.png) | ![Both phones mid-transfer: chunk ring, % and live spectrogram](docs/sending.png) | ![Sender shows delivered; receiver shows the photo](docs/received.png) |
-| ![Contact card received with Save / Call / Email](docs/contact.png) | ![Wi‑Fi network and password received](docs/wifi.png) | |
+
+Inspired by [Simon Willison's Chirp Pong](https://simonwillison.net/2026/Oct/15/chirp-pong/).
 
 ## What it can send
 
 - **Paste**: whatever is on the clipboard (text or an image).
 - **Text**: anything typed; links get an Open button, a phone number gets Call.
-- **Me**: your contact card (saved on the device), as a vCard the other phone
-  can add to its contacts.
-- **Contact** (Android Chrome): any contact via the Contact Picker.
 - **File**: any file or photo. Photos are shrunk to ~10 KB by default (about a
   minute); the original is one tap away, with its time estimate.
-- **Wi‑Fi**: network name and password, with Copy password on the other side.
 - **Share to** (installed on Android): share text, links or files from other
   apps straight into Sound Send.
 

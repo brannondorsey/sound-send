@@ -1,6 +1,6 @@
 import { AudioIO, AudioPhy } from './audio.js';
 import { Link, estimate } from './link.js';
-import { pack, unpack, peek, KIND, utf8, text, buildVCard, parseVCard, buildWifi, parseWifi } from './message.js';
+import { pack, unpack, peek, KIND, utf8, text, parseVCard, parseWifi } from './message.js';
 import { Orb, Waterfall } from './viz.js';
 import { crc32 } from './crc.js';
 
@@ -187,67 +187,6 @@ function cardHtml(c) {
   return `<div class="card"><div class="name">${esc(c.name || 'No name')}</div>${c.org ? `<div class="line">${esc(c.org)}</div>` : ''}${rows.map(([i, v]) => `<div class="line">${i}${esc(v)}</div>`).join('')}${c.note ? `<div class="line">${esc(c.note)}</div>` : ''}</div>`;
 }
 
-function composeMe(edit = false) {
-  const me = store.get('me', null);
-  if (me && !edit) {
-    const vcf = buildVCard(me);
-    const root = openSheet(`<h2>${icon('me')}Me</h2>${cardHtml(parseVCard(vcf))}
-      <div class="btns"><button type="button" data-do="edit">${icon('edit')}Edit</button></div>${sendButton()}`);
-    $('#est', root).textContent = eta(vcf.length);
-    bind(root, {
-      edit: () => composeMe(true),
-      send: () => send({ kind: KIND.CONTACT, name: me.name, body: utf8(vcf) }, me.name),
-    });
-    return;
-  }
-  const v = me || { name: '', tel: '', email: '', url: '' };
-  const root = openSheet(`<h2>${icon('me')}Me</h2>
-    <label><span>Name</span><input id="m-name" autocomplete="name" value="${esc(v.name)}"></label>
-    <label><span>Phone</span><input id="m-tel" type="tel" autocomplete="tel" value="${esc(v.tel)}"></label>
-    <label><span>Email</span><input id="m-email" type="email" autocomplete="email" value="${esc(v.email)}"></label>
-    <label><span>Link or handle</span><input id="m-url" autocomplete="url" value="${esc(v.url)}" placeholder="instagram.com/you"></label>
-    ${sendButton('Save & send')}`);
-  const read = () => ({ name: $('#m-name').value.trim(), tel: $('#m-tel').value.trim(), email: $('#m-email').value.trim(), url: $('#m-url').value.trim() });
-  const upd = () => {
-    const c = read();
-    const ok = c.name || c.tel || c.email;
-    $('[data-do=send]', root).disabled = !ok;
-    $('#est', root).textContent = ok ? eta(buildVCard(c).length) : '';
-  };
-  root.addEventListener('input', upd);
-  upd();
-  bind(root, {
-    send: () => {
-      const c = read();
-      store.set('me', c);
-      send({ kind: KIND.CONTACT, name: c.name, body: utf8(buildVCard(c)) }, c.name || 'Contact');
-    },
-  });
-}
-
-function composeWifi() {
-  const w = store.get('wifi', { ssid: '', password: '' });
-  const root = openSheet(`<h2>${icon('wifi')}Wi‑Fi</h2>
-    <label><span>Network</span><input id="w-ssid" autocomplete="off" autocapitalize="off" value="${esc(w.ssid)}"></label>
-    <label><span>Password</span><input id="w-pass" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(w.password)}"></label>
-    ${sendButton()}`);
-  const read = () => ({ ssid: $('#w-ssid').value, password: $('#w-pass').value });
-  const upd = () => {
-    const v = read();
-    $('[data-do=send]', root).disabled = !v.ssid;
-    $('#est', root).textContent = v.ssid ? eta(buildWifi(v).length) : '';
-  };
-  root.addEventListener('input', upd);
-  upd();
-  bind(root, {
-    send: () => {
-      const v = read();
-      store.set('wifi', v);
-      send({ kind: KIND.WIFI, name: v.ssid, body: utf8(buildWifi(v)) }, v.ssid);
-    },
-  });
-}
-
 async function shrinkImage(file, budget = 10000) {
   const bmp = await createImageBitmap(file);
   const canvas = document.createElement('canvas');
@@ -343,20 +282,6 @@ async function pasteFlow() {
     toast('Clipboard is empty');
   } catch {
     composeText('', 'Paste');
-  }
-}
-
-async function pickContact() {
-  try {
-    const [c] = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: false });
-    if (!c) return;
-    const card = { name: (c.name || [])[0] || '', tel: c.tel || [], email: c.email || [] };
-    const vcf = buildVCard(card);
-    const root = openSheet(`<h2>${icon('contacts')}Contact</h2>${cardHtml(parseVCard(vcf))}${sendButton()}`);
-    $('#est', root).textContent = eta(vcf.length);
-    bind(root, { send: () => send({ kind: KIND.CONTACT, name: card.name, body: utf8(vcf) }, card.name || 'Contact') });
-  } catch {
-    /* picker dismissed */
   }
 }
 
@@ -755,9 +680,6 @@ $('#actions').addEventListener('click', (e) => {
   const act = b.dataset.act;
   if (act === 'text') composeText();
   else if (act === 'paste') pasteFlow();
-  else if (act === 'me') composeMe();
-  else if (act === 'wifi') composeWifi();
-  else if (act === 'contact') pickContact();
   else if (act === 'file') $('#file').click();
 });
 
@@ -791,8 +713,6 @@ async function handleIncomingShare() {
   if (shared) composeText(shared);
   if (q.toString()) history.replaceState(null, '', location.pathname + (q.get('phone') ? `?phone=${q.get('phone')}` : ''));
 }
-
-if ('contacts' in navigator && 'ContactsManager' in window) $('[data-act=contact]').hidden = false;
 
 state.inbox = store.get('inbox', []).map((i) => ({ ...i, body: utf8(i.body) }));
 renderInbox();
