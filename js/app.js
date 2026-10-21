@@ -344,7 +344,7 @@ $('#stage-close').addEventListener('click', () => {
 // ------------------------------------------------------------- sending --
 
 async function send(msg, label) {
-  if (!state.link) return;
+  if (!(await ensureStarted())) return;
   if (state.link.tx) return toast('Already sending');
   closeSheet();
   const bytes = await pack(msg);
@@ -625,17 +625,25 @@ async function wakeLock() {
 }
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wakeLock());
 
+// Audio (and the mic prompt) starts on the first action, not on page load, so
+// nobody is asked for the microphone before they know what the page is.
+let starting = null;
+function ensureStarted() {
+  if (state.link) return Promise.resolve(true);
+  return (starting ||= start().then((ok) => {
+    if (!ok) starting = null;
+    return ok;
+  }));
+}
+
 async function start() {
-  $('#go').disabled = true;
   const io = new AudioIO();
   try {
     await io.start();
   } catch (e) {
-    $('#go').disabled = false;
     toast(`Audio unavailable: ${e.message}`);
-    return;
+    return false;
   }
-  $('#gate').hidden = true;
   state.io = io;
   orb.analyser = waterfall.analyser = io.analyser;
   const link = (state.link = new Link(new AudioPhy(io)));
@@ -669,15 +677,14 @@ async function start() {
   idleStage();
   if (!io.mic) toast('Microphone blocked · you can still send');
   wakeLock();
-  await handleIncomingShare();
+  return true;
 }
 
-$('#go').addEventListener('click', start);
-
-$('#actions').addEventListener('click', (e) => {
+$('#actions').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-act]');
-  if (!b || !state.link) return;
+  if (!b) return;
   const act = b.dataset.act;
+  if (!(await ensureStarted())) return;
   if (act === 'text') composeText();
   else if (act === 'paste') pasteFlow();
   else if (act === 'file') $('#file').click();
@@ -718,6 +725,7 @@ state.inbox = store.get('inbox', []).map((i) => ({ ...i, body: utf8(i.body) }));
 renderInbox();
 renderSpeed();
 idleStage();
+handleIncomingShare();
 
 const inHarness = window.parent !== window;
 if ('serviceWorker' in navigator && !inHarness && (location.protocol === 'https:' || location.hostname === 'localhost')) {
