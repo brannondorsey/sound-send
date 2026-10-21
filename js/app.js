@@ -296,13 +296,16 @@ function setIcon(id, cls = '') {
 }
 
 function idleStage() {
+  const cold = !state.io; // audio hasn't started yet: the orb is the call to action
   const off = state.io && !state.io.mic;
   document.body.classList.remove('busy');
   state.view = null;
-  orb.set(off ? 'off' : 'idle');
-  setIcon(off ? 'micoff' : 'ear', off ? 'off' : '');
+  orb.set(cold || off ? 'off' : 'idle');
+  setIcon(cold ? 'mic' : off ? 'micoff' : 'ear', cold ? 'cta' : off ? 'off' : '');
+  $('#stage').classList.toggle('cold', cold);
+  $('#stage-cta').hidden = !cold;
   $('#pct').textContent = '';
-  $('#sub').textContent = off ? 'mic off · send only' : 'listening';
+  $('#sub').textContent = cold ? 'Tap to enable microphone' : off ? 'mic off · send only' : 'listening';
   $('#what').innerHTML = '';
 }
 
@@ -679,6 +682,8 @@ async function start() {
   wakeLock();
   return true;
 }
+
+$('#stage-cta').addEventListener('click', ensureStarted);
 
 $('#actions').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-act]');
