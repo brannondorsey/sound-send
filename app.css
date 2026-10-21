@@ -260,9 +260,6 @@ body.busy .stage-close {
   transition: color 0.15s, border-color 0.15s;
 }
 .repo .ico { width: 14px; height: 14px; }
-.thanks { margin: 10px 0 0; text-align: center; color: var(--dim); font-size: 11px; opacity: 0.8; }
-.thanks a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
-.thanks a:hover { color: var(--accent); }
 .repo:hover, .repo:active { color: var(--accent); border-color: var(--accent); }
 
 /* -------------------------------------------------------------- sheet -- */
